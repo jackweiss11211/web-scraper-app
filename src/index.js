@@ -17,7 +17,30 @@ const PORT = process.env.PORT || 3000;
 app.set('trust proxy', 1); // trust first proxy
 
 // Middleware
-app.use(helmet());
+const cspDefaults = helmet.contentSecurityPolicy.getDefaultDirectives();
+delete cspDefaults['upgrade-insecure-requests'];
+
+app.use(helmet({
+  contentSecurityPolicy: {
+    useDefaults: true,
+    directives: {
+      ...cspDefaults,
+      'script-src': [
+        "'self'",
+        'https://kit.fontawesome.com',
+        'https://cdn.jsdelivr.net',
+        'unsafe-inline', // Required for inline event handlers
+        'unsafe-eval'   // Required for Bootstrap 5
+      ],
+      'img-src': ["'self'", 'data:', 'https:'],
+      'connect-src': ["'self'"],
+      'font-src': ["'self'", 'https:', 'data:'],
+      'style-src': ["'self'", 'https:', "'unsafe-inline"],
+      'default-src': ["'self'"],
+    },
+  },
+}));
+
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static('public'));
