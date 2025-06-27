@@ -13,6 +13,9 @@ const { createZip } = require('./utils/zipUtils');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Trust first proxy (Render's load balancer)
+app.set('trust proxy', 1); // trust first proxy
+
 // Middleware
 app.use(helmet());
 app.use(cors());
@@ -22,7 +25,14 @@ app.use(express.static('public'));
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
+  max: 100, // limit each IP to 100 requests per windowMs
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  keyGenerator: (req) => {
+    // Use the client's IP from the X-Forwarded-For header if it exists
+    // This ensures rate limiting works behind a reverse proxy like Render
+    return req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+  }
 });
 app.use(limiter);
 
